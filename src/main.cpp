@@ -2,13 +2,13 @@
 #include <Arduino.h>
 
 
-#define PIXEL_COUNT 50
+#define PIXEL_COUNT 4
 #define MAX_LIT_PIXELS 4
 const uint8_t PixelPin = 10;
 auto BLACK = HslColor(0, 0, 0);
 
 // three element pixels, in different order and speeds
-NeoPixelBus<NeoRgbFeature, NeoWs2812xMethod> strip(PIXEL_COUNT, PixelPin);
+NeoPixelBus<NeoGrbFeature, NeoWs2811Method> strip(PIXEL_COUNT, PixelPin);
 
 int count = 0;
 RgbColor color;
