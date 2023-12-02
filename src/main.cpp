@@ -2,39 +2,21 @@
 #include <Arduino.h>
 
 
-#define PIXEL_COUNT 4
-#define MAX_LIT_PIXELS 4
+#define PIXEL_COUNT 1
 const uint8_t PixelPin = 10;
 auto BLACK = HslColor(0, 0, 0);
+float progress = 0.0;
+int colorIndex = 0;
+
+#define COLORS_LENGTH 3
+HtmlColor targetColors[COLORS_LENGTH] = {
+        HtmlColor(0xff0000),
+        HtmlColor(0x00ff00),
+        HtmlColor(0x0000ff),
+};
 
 // three element pixels, in different order and speeds
-NeoPixelBus<NeoGrbFeature, NeoWs2811Method> strip(PIXEL_COUNT, PixelPin);
-
-int count = 0;
-RgbColor color;
-uint8_t pos;
-
-enum Mode {
-    FadeIn,
-    FadeOut,
-    Dead
-};
-
-struct LitPixel {
-    int loc;
-    float hue;
-    float sat;
-    float lum;
-    Mode mode;
-    float fadeRate;
-};
-
-LitPixel data[MAX_LIT_PIXELS];
-int lit_pixels = 0;
-
-void updatePixels();
-LitPixel newPixel();
-float getRandomHue();
+NeoPixelBus<NeoRbgFeature, NeoWs2811Method> strip(PIXEL_COUNT, PixelPin);
 
 void setup() {
     Serial.begin(115200);
@@ -45,58 +27,42 @@ void setup() {
     strip.ClearTo(BLACK);
     strip.Show();
 
+    for(unsigned int i = 0; i < COLORS_LENGTH; i++)
+    {
+
+            Serial.println(i);
+            Serial.println(targetColors[i].Color);
+            Serial.println("---------------");
+
+    }
+
+
 }
 
+RgbColor getNextColor() {
+    int nextIndex = (colorIndex + 1) % COLORS_LENGTH;
+    Serial.println(nextIndex);
+    return targetColors[nextIndex];
+}
 
 void loop() {
 
-    if (lit_pixels < MAX_LIT_PIXELS) {
-        data[lit_pixels] = newPixel();
-        lit_pixels++;
+    RgbColor current = targetColors[colorIndex];
+    RgbColor nextColor = getNextColor();
+
+    RgbColor color = RgbColor::LinearBlend(current, nextColor, (float) min(progress, 1.0));
+
+    strip.SetPixelColor(0, color);
+    strip.Show();
+
+    progress += 0.005;
+//    Serial.print(progress);
+//    Serial.print("\t");
+//    Serial.println(colorIndex);
+    if (progress > 2.0) {
+        progress = 0;
+        colorIndex = (colorIndex + 1) % COLORS_LENGTH;
     }
-    updatePixels();
     delay(10);
 }
 
-
-void updatePixels() {
-    for (int i = 0; i < lit_pixels; ++i) {
-        LitPixel litPixel = data[i];
-        Serial.print("mode ");
-        Serial.println(litPixel.mode);
-        Serial.println(litPixel.lum);
-        Serial.println("-----");
-
-        strip.SetPixelColor(litPixel.loc,  HslColor(litPixel.hue, 1.0, litPixel.lum));
-        if (litPixel.mode == FadeIn) {
-            litPixel.lum = (float ) (litPixel.lum + litPixel.fadeRate);
-            if (litPixel.lum >= 0.5) litPixel.mode = FadeOut;
-        } else if (litPixel.mode == FadeOut){
-            litPixel.lum = (float ) (litPixel.lum - litPixel.fadeRate);
-            if (litPixel.lum <= 0.0) litPixel.mode = Dead;
-        } else {
-            strip.SetPixelColor(litPixel.loc,  BLACK);
-            litPixel = newPixel();
-        }
-
-        data[i] = litPixel;
-        strip.Show();
-    }
-}
-
-LitPixel newPixel() {
-    int pixel_loc = (int) random(0, PIXEL_COUNT);
-    LitPixel litPixel{
-    pixel_loc,
-    getRandomHue(),
-    1.0,
-    0.0,
-    FadeIn,
-    (((float) random(1, 5))/1000)
-    };
-    return litPixel;
-}
-
-float getRandomHue() {
-    return (float) random(0, 360) / 360;
-}
