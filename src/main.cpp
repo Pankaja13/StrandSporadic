@@ -3,7 +3,8 @@
 
 
 #define PIXEL_COUNT 1
-const uint8_t PixelPin = 10;
+#define LED_ENABLE_PIN 4
+
 auto BLACK = HslColor(0, 0, 0);
 float progress = 0.0;
 int colorIndex = 0;
@@ -16,12 +17,15 @@ HtmlColor targetColors[COLORS_LENGTH] = {
 };
 
 // three element pixels, in different order and speeds
-NeoPixelBus<NeoRbgFeature, NeoWs2811Method> strip(PIXEL_COUNT, PixelPin);
+NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1800KbpsMethod> strip(PIXEL_COUNT);
 
 void setup() {
     Serial.begin(115200);
     Serial.println("Hello");
     randomSeed(analogRead(1));
+
+    pinMode(LED_ENABLE_PIN, OUTPUT);
+    digitalWrite(LED_ENABLE_PIN, HIGH);
 
     strip.Begin();
     strip.ClearTo(BLACK);
@@ -50,7 +54,7 @@ void loop() {
     RgbColor current = targetColors[colorIndex];
     RgbColor nextColor = getNextColor();
 
-    RgbColor color = RgbColor::LinearBlend(current, nextColor, (float) min(progress, 1.0));
+    RgbColor color = RgbColor::LinearBlend(current, nextColor, (float) _min(progress, 1.0));
 
     strip.SetPixelColor(0, color);
     strip.Show();
